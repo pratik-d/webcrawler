@@ -1,21 +1,40 @@
 import argparse
 from bs4 import BeautifulSoup
-import urllib
+from selenium import webdriver      
+import time
 
+def getHTMLElement(page_url):
+    driver = webdriver.Firefox()
+    driver.get(page_url)
+
+    while True:
+        try:
+            loadMoreResults = driver.find_element_by_xpath("//div[@class='mb-load-more-container']//button[@class='mb-load-more mb-btn-secondary-light-bg']")
+            time.sleep(2)
+            loadMoreResults.click()
+            time.sleep(3)
+        except Exception as e:
+            print(e)
+            break
+
+    time.sleep(1)
+    html_source = driver.page_source
+    # time.sleep(3)
+    driver.quit()
+
+    return html_source
 
 def writeToFile(list, filename):
     f = open(filename, "w")
 
-    for i in range(0, len(list)):
+    for i in range(0, len(list)-1):
         f.write(list[i] + " \n")
 
     f.close()
 
 
-def fileParser(filename, pdps):
-    file = open(filename, "r").read()
-
-    soup = BeautifulSoup(file, 'html.parser')
+def fileParser(sourceCode, pdps):
+    soup = BeautifulSoup(sourceCode, 'html.parser')
 
     pdplist = soup('div')
 
@@ -25,7 +44,7 @@ def fileParser(filename, pdps):
             s1 = string_line.split("data-prod-id")
 
             if len(s1)>1:
-                for i in range(0, len(s1)-1):
+                for i in range(0, len(s1)):
                     s2= s1[i].split("\n")
 
                     if s2[0].startswith("="):
@@ -36,19 +55,19 @@ def fileParser(filename, pdps):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--htmlfile", help="enter the html file", required=True, type=str)
+    parser.add_argument("-w", "--pageurl", help="enter the url", required=True, type=str)
     parser.add_argument("-t", "--textfile", help="Output text file with Filter IDs, in .txt format", required=True, type=str)
 
     args = parser.parse_args()
 
-    htmlFile = args.htmlfile
+    pageurl = args.pageurl
     textfile = args.textfile
 
-    # htmlFile = "/home/pratik/projects/MTB/wri.html"
+    sourceCode = getHTMLElement(pageurl)
+
     pdps = []
 
-    fileParser(htmlFile, pdps)
-    print(pdps)
+    fileParser(sourceCode, pdps)
+    # print(pdps)
 
-    # print(type(textfile))
     writeToFile(pdps, textfile)
